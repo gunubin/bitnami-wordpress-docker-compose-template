@@ -1,0 +1,47 @@
+version: '3'
+
+services:
+  mariadb:
+    image: 'bitnami/mariadb:latest'
+    container_name: ${PROJECT_NAME}-db
+    volumes:
+      - ./data/db/conf.d:/bitnami/mariadb/conf.d
+      - ./data/db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - mariadb:/bitnami/mariadb
+    restart: always
+    ports:
+      - "${DB_PORT}:3306"
+    env_file: .env
+    environment:
+      - MARIADB_USER=wordpress
+      - MARIADB_DATABASE=wordpress
+      - ALLOW_EMPTY_PASSWORD=yes
+
+  smtp:
+    image: schickling/mailcatcher
+    container_name: ${PROJECT_NAME}-smtp
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+
+  wordpress:
+    image: bitnami/wordpress:latest
+    container_name: ${PROJECT_NAME}-wordpress
+    depends_on:
+      - mariadb
+      - smtp
+    ports:
+      - "${HOST_PORT}:80"
+    restart: always
+    volumes:
+      - "${WORDPRESS_HOST_PATH}:/bitnami/wordpress"
+    env_file: .env
+    environment:
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT_NUMBER=3306
+      - WORDPRESS_DATABASE_USER=wordpress
+      - WORDPRESS_DATABASE_NAME=wordpress
+      - ALLOW_EMPTY_PASSWORD=yes
+
+volumes:
+  mariadb:
